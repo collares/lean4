@@ -5,12 +5,10 @@ let
     ${nix.defaultPackage.${system}}/bin/nix --experimental-features 'nix-command flakes' --extra-substituters https://lean4.cachix.org/ --option warn-dirty false "$@"
   '';
   llvmPackages = llvmPackages_10;
+  useLld = system != "x86_64-darwin";
   cc = ccacheWrapper.override rec {
     # macOS doesn't like the lld override, but I guess it already uses that anyway
-    cc = if system == "x86_64-darwin" then llvmPackages.clang else llvmPackages.clang.override {
-      # linker go brrr
-      bintools = llvmPackages.lldClang.bintools;
-    };
+    cc = if useLld then llvmPackages.lldClang else llvmPackages.clang;
     extraConfig = ''
       export CCACHE_DIR=/nix/var/cache/ccache
       export CCACHE_UMASK=007
@@ -28,7 +26,7 @@ let
   };
   lean = callPackage (import ./bootstrap.nix) (args // {
     stdenv = overrideCC llvmPackages.stdenv cc;
-    inherit buildLeanPackage;
+    inherit buildLeanPackage llvmPackages useLld;
   });
   makeOverridableLeanPackage = f:
     let newF = origArgs: f origArgs // {

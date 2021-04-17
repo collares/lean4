@@ -1,5 +1,5 @@
 { debug ? false, stage0debug ? false, extraCMakeFlags ? [],
-  stdenv, lib, cmake, gmp, gnumake, buildLeanPackage, writeShellScriptBin, runCommand, symlinkJoin, lndir,
+  stdenv, lib, cmake, gmp, gnumake, buildLeanPackage, writeShellScriptBin, runCommand, symlinkJoin, lndir, llvmPackages, useLld,
   ... } @ args:
 rec {
   inherit stdenv;
@@ -9,7 +9,7 @@ rec {
     # https://github.com/NixOS/nixpkgs/issues/60919
     hardeningDisable = [ "all" ];
     dontStrip = (args.debug or debug);
-
+    NIX_LDFLAGS = lib.optionalString useLld "-rpath ${llvmPackages.libunwind.out}/lib";
     postConfigure = ''
       patchShebangs bin
     '';
